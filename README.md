@@ -42,6 +42,27 @@ block:
 - Cursor: `~/.cursor/mcp.json`, same block.
 - VS Code / Copilot: `.vscode/mcp.json` under `"servers"`.
 
+A client that only launches a command uses the stdio bridge in this repository
+instead, which forwards the same tool over HTTPS:
+
+```json
+{
+  "mcpServers": {
+    "python-code-validator": {
+      "command": "python3",
+      "args": ["/path/to/python-code-validator/mcp_stdio.py"]
+    }
+  }
+}
+```
+
+Or as a container, which the `Dockerfile` here builds:
+
+```bash
+docker build -t python-code-validator .
+docker run -i --rm -e VALIDATOR_API_KEY python-code-validator
+```
+
 The tool is `python_code_validator`. One line in a project's agent instructions
 is what makes an agent actually use it:
 
