@@ -1,0 +1,115 @@
+# Python Code Validator
+
+A hosted service that checks AI-generated Python before it ships: syntax and
+lint diagnostics, an AST security policy that also catches calls hidden behind
+dynamic imports and runtime attribute lookups, a bandit pass, a credential scan
+and deterministic repair — one verdict with a score.
+
+This repository holds the client side: the MCP configuration, the CI script and
+the pre-commit hook. The service itself runs at `https://api.statemind.ai`, so
+there is nothing to install or host.
+
+## A key, without an account
+
+```bash
+curl -s -X POST https://api.statemind.ai/v1/keys
+# {"api_key": "msvc_free_…", "tier": "free", "calls_per_day": 100, "modes": ["static"]}
+```
+
+100 validations a day, metered per UTC day. Every answer carries the state of
+the allowance (`x-quota-remaining`, `x-quota-reset`), so a client can back off
+before it is cut off.
+
+## MCP
+
+Registered in the official MCP registry as
+`io.github.jkanselaar/python-code-validator`. Any MCP client adds it with one
+block:
+
+```json
+{
+  "mcpServers": {
+    "python-code-validator": {
+      "type": "http",
+      "url": "https://api.statemind.ai/mcp",
+      "headers": { "Authorization": "Bearer msvc_free_…" }
+    }
+  }
+}
+```
+
+- Claude Code: `claude mcp add --transport http python-code-validator https://api.statemind.ai/mcp --header "Authorization: Bearer msvc_free_…"`
+- Cursor: `~/.cursor/mcp.json`, same block.
+- VS Code / Copilot: `.vscode/mcp.json` under `"servers"`.
+
+The tool is `python_code_validator`. One line in a project's agent instructions
+is what makes an agent actually use it:
+
+> Validate every generated Python file with `python_code_validator` before
+> presenting it. Do not present code the validator marks invalid.
+
+## CI
+
+The service hands out the client, so a workflow needs no checkout of this
+repository and no secret:
+
+```yaml
+- run: |
+    curl -sf https://api.statemind.ai/v1/client -o validate.py
+    python3 validate.py --changed-against "origin/${{ github.base_ref }}"
+```
+
+Or as an action:
+
+```yaml
+- uses: jkanselaar/python-code-validator/.github/actions/validate-python@main
+  with:
+    api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
+```
+
+The changed Python is validated and offending lines are annotated on the diff,
+failing the job on syntax errors and unsafe patterns. Files the service refuses
+outright (over its 200 kB limit) are skipped with a warning rather than failing
+the run.
+
+## Pre-commit
+
+```yaml
+repos:
+  - repo: https://github.com/jkanselaar/python-code-validator
+    rev: v1.0.0
+    hooks:
+      - id: python-code-validator
+```
+
+## The client itself
+
+`validate.py` is standard library only, so it also works as `python
+validate.py file.py` in a Makefile, a git hook or a container:
+
+```
+$ python3 validate.py service.py
+::error file=service.py,line=88,title=SyntaxError::invalid syntax
+FAIL service.py score=0.66
+
+0/1 files accepted
+```
+
+`VALIDATOR_API_KEY` is used when set; otherwise the client mints a free key.
+`VALIDATOR_URL` points it at another deployment.
+
+## HTTP
+
+```bash
+curl -s https://api.statemind.ai/v1/validate \
+  -H "Authorization: Bearer $VALIDATOR_API_KEY" \
+  -H 'content-type: application/json' \
+  -d '{"code": "def f(:\n    pass\n", "mode": "static"}'
+```
+
+`mode` is `static`, `repair` or `execute`; `repair` and `execute` need a
+configured key. Submitted code is not logged.
+
+## Licence
+
+MIT.

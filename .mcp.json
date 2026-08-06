@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "python-code-validator": {
+      "type": "http",
+      "url": "https://api.statemind.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${VALIDATOR_API_KEY}"
+      }
+    }
+  }
+}

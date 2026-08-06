@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.jkanselaar/python-code-validator",
+  "title": "Python Code Validator",
+  "description": "Validates AI-generated Python: syntax, lint, security scan and deterministic repair.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/jkanselaar/python-code-validator",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.statemind.ai/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer <key>. Get one for free, no account: curl -X POST https://api.statemind.ai/v1/keys",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

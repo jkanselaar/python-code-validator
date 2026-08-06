@@ -1,0 +1,59 @@
+name: Validate AI-generated Python
+description: >-
+  Check the Python in a pull request for syntax errors, lint problems and unsafe
+  patterns using the python-code-validator service. Works without a secret: it
+  asks the service for a free-tier key.
+author: jkanselaar
+
+inputs:
+  api-key:
+    description: Validator API key. Leave empty to use the free tier.
+    required: false
+    default: ""
+  url:
+    description: Base URL of the validator service.
+    required: false
+    default: https://api.statemind.ai
+  files:
+    description: Space-separated files to validate. Empty means the pull request's changes.
+    required: false
+    default: ""
+  base-ref:
+    description: Ref to diff against when `files` is empty.
+    required: false
+    default: ""
+  mode:
+    description: static or repair.
+    required: false
+    default: static
+  allow-security-findings:
+    description: Report security findings as warnings instead of failing the job.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Validate
+      shell: bash
+      env:
+        VALIDATOR_API_KEY: ${{ inputs.api-key }}
+        VALIDATOR_URL: ${{ inputs.url }}
+        FILES: ${{ inputs.files }}
+        # A pull request diffs against its target; a push falls back to the
+        # previous commit, which is what `HEAD^` means here.
+        BASE_REF: ${{ inputs.base-ref || (github.base_ref && format('origin/{0}', github.base_ref)) || 'HEAD^' }}
+        MODE: ${{ inputs.mode }}
+        ALLOW: ${{ inputs.allow-security-findings }}
+        CLIENT: ${{ github.action_path }}/../../../validate.py
+      run: |
+        set -euo pipefail
+        args=(--mode "$MODE" --url "$VALIDATOR_URL")
+        [ "$ALLOW" = "true" ] && args+=(--allow-security-findings)
+        if [ -n "$FILES" ]; then
+          # shellcheck disable=SC2086
+          python "$CLIENT" "${args[@]}" $FILES
+        else
+          git fetch --no-tags --depth=50 origin "${BASE_REF#origin/}" || true
+          python "$CLIENT" "${args[@]}" --changed-against "$BASE_REF"
+        fi

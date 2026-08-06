@@ -1,0 +1,18 @@
+# Validate Python before it is committed:
+#
+#   repos:
+#     - repo: https://github.com/jkanselaar/python-code-validator
+#       rev: v1.0.0
+#       hooks:
+#         - id: python-code-validator
+#
+# `language: script` runs the client straight from this checkout, so the hook
+# installs nothing: it is standard library only.
+- id: python-code-validator
+  name: validate Python against python-code-validator
+  description: >-
+    Check staged Python for syntax errors, lint problems and unsafe patterns.
+    Uses the free tier unless VALIDATOR_API_KEY is set.
+  entry: validate.py
+  language: script
+  types: [python]
