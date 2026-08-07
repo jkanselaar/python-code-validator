@@ -127,7 +127,7 @@ class Bridge:
                         asked if asked in PROTOCOL_VERSIONS else PROTOCOL_VERSIONS[0]
                     ),
                     "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "python-code-validator", "version": "1.0.0"},
+                    "serverInfo": {"name": "python-code-validator", "version": "1.1.0"},
                 },
             )
         if method == "tools/list":

@@ -3,7 +3,7 @@
   "name": "io.github.jkanselaar/python-code-validator",
   "title": "Python Code Validator",
   "description": "Validates AI-generated Python: syntax, lint, security scan and deterministic repair.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "repository": {
     "url": "https://github.com/jkanselaar/python-code-validator",
     "source": "github"
