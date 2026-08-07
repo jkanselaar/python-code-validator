@@ -36,16 +36,31 @@ INTERNAL_ERROR = -32603
 
 TOOL = {
     "name": TOOL_NAME,
+    "title": "Python code validator",
     "description": (
-        "Validate Python: syntax and lint diagnostics, a security policy over the AST, "
-        "a credential scan and deterministic repair. Returns a verdict with a score."
+        "Validate Python source and get a verdict: syntax and lint diagnostics, type errors, "
+        "a security policy over the AST, a credential scan and deterministic repair.\n\n"
+        "mode=static (default) never runs the submitted code. mode=repair also returns the "
+        "rewritten source in fixed_code, and keeps the original where it cannot prove the fix. "
+        "mode=execute additionally runs the code in a container sandbox — no network, read-only "
+        "filesystem, killed on timeout — and reports its exit code, stdout and stderr; treat "
+        "that as a side effect and do not submit code you do not want executed.\n"
+        "Auth: the bridge sends VALIDATOR_API_KEY, or mints a free key on first use. The free "
+        "tier covers static only, capped per day (HTTP 429 when spent); repair and execute need "
+        "a paid key and answer 402 without one. Nothing on your machine is read or written: the "
+        "code you pass is sent to https://api.statemind.ai and retained there to improve the "
+        "service.\n"
+        "Returns valid, score 0..1, diagnostics (rule, message, line, column), security "
+        "findings, fixes, fixed_code, runtime and meta. Use it on Python you generated or "
+        "edited before writing it to disk, and prefer static unless you need the fix or proof "
+        "that it runs."
     ),
     "inputSchema": {
         "type": "object",
         "properties": {
             "code": {
                 "type": "string",
-                "description": "The Python source to validate.",
+                "description": "The Python source to validate. A whole module, not a fragment.",
                 "maxLength": 200000,
             },
             "mode": {
@@ -53,16 +68,50 @@ TOOL = {
                 "enum": ["static", "repair", "execute"],
                 "default": "static",
                 "description": (
-                    "static analyses only; repair also returns fixed code; "
+                    "static analyses only and is free; repair also returns fixed code; "
                     "execute runs it in a sandbox. repair and execute need a paid key."
                 ),
             },
-            "filename": {
-                "type": "string",
-                "description": "Name to report diagnostics against.",
+            "options": {
+                "type": "object",
+                "description": "Tuning knobs; timeout_s (1-60) bounds execute mode.",
+                "properties": {"timeout_s": {"type": "number", "minimum": 1, "maximum": 60}},
             },
         },
         "required": ["code"],
+    },
+    "outputSchema": {
+        "type": "object",
+        "properties": {
+            "valid": {"type": "boolean", "description": "False when anything is an error."},
+            "score": {"type": "number", "minimum": 0, "maximum": 1},
+            "diagnostics": {
+                "type": "array",
+                "description": "Correctness problems, each with rule, message, line and column.",
+                "items": {"type": "object"},
+            },
+            "security": {"type": "array", "items": {"type": "object"}},
+            "fixes": {"type": "array", "items": {"type": "string"}},
+            "fixed_code": {
+                "type": ["string", "null"],
+                "description": "Repaired source, only in repair and execute mode.",
+            },
+            "runtime": {
+                "type": "object",
+                "description": "Sandbox result, only in execute mode.",
+            },
+            "meta": {"type": "object"},
+        },
+        "required": ["valid", "score", "diagnostics", "security", "meta"],
+    },
+    "annotations": {
+        "title": "Python code validator",
+        # execute runs the submitted code, so the tool is not read-only, but it
+        # only ever touches the service's own throwaway sandbox.
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
     },
 }
 
@@ -127,7 +176,7 @@ class Bridge:
                         asked if asked in PROTOCOL_VERSIONS else PROTOCOL_VERSIONS[0]
                     ),
                     "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "python-code-validator", "version": "1.1.0"},
+                    "serverInfo": {"name": "python-code-validator", "version": "1.1.1"},
                 },
             )
         if method == "tools/list":
