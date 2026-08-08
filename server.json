@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.jkanselaar/python-code-validator",
   "title": "Python Code Validator",
-  "description": "Validates AI-generated Python: syntax, lint, security scan and deterministic repair.",
-  "version": "1.1.1",
+  "description": "Validates, repairs and hardens AI-generated Python: syntax and lint diagnostics, security scanning, deterministic auto-fixes, optional sandboxed execution and Python-to-JavaScript transpilation.",
+  "version": "1.2.4",
   "repository": {
     "url": "https://github.com/jkanselaar/python-code-validator",
     "source": "github"
