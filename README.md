@@ -63,6 +63,13 @@ docker build -t python-code-validator .
 docker run -i --rm -e VALIDATOR_API_KEY python-code-validator
 ```
 
+Gemini CLI installs the same bridge as an extension, with the instruction file
+that makes it get used:
+
+```bash
+gemini extensions install jkanselaar/python-code-validator
+```
+
 Three tools, named after what they do to the code:
 
 | tool | runs the code | key |

@@ -1,0 +1,21 @@
+{
+  "name": "python-code-validator",
+  "version": "1.6.4",
+  "description": "Validate, repair and sandbox-run AI-generated Python: lint, types, security and exact fixes.",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "python-code-validator": {
+      "command": "python3",
+      "args": ["${extensionPath}/mcp_stdio.py"],
+      "cwd": "${extensionPath}"
+    }
+  },
+  "settings": [
+    {
+      "name": "Validator API key",
+      "description": "Optional. Without one the bridge mints a free key on first use, good for 100 static validations a day. A configured key adds repair and execute. Get one with: curl -s -X POST https://api.statemind.ai/v1/keys",
+      "envVar": "VALIDATOR_API_KEY",
+      "sensitive": true
+    }
+  ]
+}
