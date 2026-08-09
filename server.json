@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.jkanselaar/python-code-validator",
+  "name": "ai.statemind/python-code-validator",
   "title": "Python Code Validator",
   "description": "Validates, repairs and sandbox-runs AI-generated Python: lint, types, security, exact fixes.",
   "version": "1.6.4",
