@@ -209,5 +209,27 @@ class LoopTest(unittest.TestCase):
         self.assertEqual(json.loads(sink.getvalue())["error"]["code"], mcp_stdio.METHOD_NOT_FOUND)
 
 
+class GeminiExtensionTest(unittest.TestCase):
+    """The manifest Gemini CLI installs, which nothing else exercises."""
+
+    def setUp(self) -> None:
+        root = Path(__file__).resolve().parent.parent
+        self.manifest = json.loads((root / "gemini-extension.json").read_text())
+        self.root = root
+
+    def test_it_launches_a_file_that_exists(self) -> None:
+        server = self.manifest["mcpServers"]["python-code-validator"]
+        launched = server["args"][0].replace("${extensionPath}/", "")
+        self.assertTrue((self.root / launched).is_file(), launched)
+
+    def test_the_key_is_declared_so_the_cli_passes_it_through(self) -> None:
+        """Gemini CLI drops every environment variable a manifest does not ask for."""
+        declared = [setting["envVar"] for setting in self.manifest["settings"]]
+        self.assertIn("VALIDATOR_API_KEY", declared)
+
+    def test_the_version_is_the_bridge_it_ships(self) -> None:
+        self.assertEqual(self.manifest["version"], mcp_stdio.VERSION)
+
+
 if __name__ == "__main__":
     unittest.main()
