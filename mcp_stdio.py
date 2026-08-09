@@ -29,7 +29,7 @@ TIMEOUT_S = 60
 # A client blocks on tools/list before it can do anything, so asking the
 # service what it offers must fail fast and hand over to the built-in list.
 DISCOVERY_TIMEOUT_S = 5
-VERSION = "1.6.4"
+VERSION = "1.6.7"
 
 # Newest first: a client's requested version wins when we know it, otherwise it
 # is told what we do speak and decides.
@@ -53,24 +53,28 @@ INTERNAL_ERROR = -32603
 _WHAT = {
     "static": (
         "Validate Python",
-        "Check Python source without running it: parse it, lint it (ruff), type-check it "
-        "(mypy), apply an AST security policy and scan for credentials. Nothing is executed "
-        "and nothing is written, so this is safe on code you do not trust. Use it on every "
-        "Python file you generated or edited, before writing it to disk.",
+        "Check Python source without running it: parse, lint (ruff), type-check (mypy), "
+        "AST security policy, credential scan. Nothing is executed or written, so this is "
+        "safe on code you do not trust. Use it on every Python file you generated or "
+        "edited, before writing it to disk. Alternatives: repair_python to get the "
+        "corrected source instead of the diagnosis; execute_python to prove the code runs.",
     ),
     "repair": (
         "Repair Python",
-        "Everything validate does, plus deterministic fixes: the corrected source comes back "
-        "in fixed_code, and the original is kept whenever the fix cannot be proven safe. The "
-        "code is still never run. Use it when validation failed and you want the fix rather "
-        "than the diagnosis.",
+        "Everything validation does, plus deterministic fixes: the corrected source comes "
+        "back in fixed_code, and the original is kept whenever the fix cannot be proven "
+        "safe. The code is still never run. Use it when validation failed and you want the "
+        "fix rather than the diagnosis. Alternatives: validate_python when the diagnosis "
+        "is enough; execute_python when the fix has to be proven to run.",
     ),
     "execute": (
         "Execute Python",
-        "Everything repair does, and then RUNS the code in a throwaway container — no network, "
-        "read-only filesystem, killed at options.timeout_s — and reports its exit code, stdout "
-        "and stderr. This is a side effect: do not submit code you do not want executed. Use "
-        "it only when you need proof that the code runs.",
+        "Everything repair does, and then RUNS the code in a throwaway container — no "
+        "network, read-only filesystem, killed at options.timeout_s — reporting exit code, "
+        "stdout and stderr. This is a side effect: do not submit code you do not want "
+        "executed. Use it only when you need proof that the code runs, or that it prints "
+        "the right thing. Alternatives: validate_python for the diagnosis and repair_python "
+        "for the fix, neither of which runs anything.",
     ),
 }
 
@@ -150,10 +154,9 @@ _INPUT_SCHEMA = {
 # reading only the schema sets timeout_s on a call that never runs anything.
 _ARGUMENTS = {
     "static": (
-        "Arguments: code is the whole file. Of options only transpile_to does anything "
-        "here; timeout_s, max_iterations, optimize and expected_output all need "
-        "repair_python or execute_python, so send code alone and call repair_python if "
-        "you want the fix rather than the diagnosis."
+        "Arguments: code is the whole file. Of options only transpile_to acts here; "
+        "timeout_s, max_iterations, optimize and expected_output need a pass that "
+        "rewrites or runs the code, so send code alone."
     ),
     "repair": (
         "Arguments: code is the whole file. options.max_iterations (1..10, default 3) "
