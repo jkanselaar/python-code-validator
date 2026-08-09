@@ -11,7 +11,8 @@ whole installation.
                                               "args": ["mcp_stdio.py"]}}}
 
 `VALIDATOR_API_KEY` is used when set; otherwise a free key is minted on the
-first call. `initialize` and `tools/list` need neither a key nor the network.
+first call. `initialize` needs neither a key nor the network, and `tools/list`
+falls back to the built-in list when the service cannot be reached.
 """
 
 from __future__ import annotations
@@ -25,102 +26,146 @@ from typing import Any, TextIO
 
 DEFAULT_URL = "https://api.statemind.ai"
 TIMEOUT_S = 60
+# A client blocks on tools/list before it can do anything, so asking the
+# service what it offers must fail fast and hand over to the built-in list.
+DISCOVERY_TIMEOUT_S = 5
+VERSION = "1.4.1"
 
 # Newest first: a client's requested version wins when we know it, otherwise it
 # is told what we do speak and decides.
 PROTOCOL_VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
-TOOL_NAME = "python_code_validator"
+
+# One tool per mode: a model picks tools by name, and a name that says what
+# happens (execute_python runs the code) is a decision it can get right, where
+# mode="execute" is a detail three levels into a schema it can get wrong in
+# either direction. The service names a tool <verb>_<language>, so the verb is
+# the mode, whether or not this bridge shipped before the tool existed.
+VERB_MODES = {"validate": "static", "repair": "repair", "execute": "execute"}
+TOOL_MODES = {f"{verb}_python": mode for verb, mode in VERB_MODES.items()}
+# The name this bridge answered to before it had one tool per mode. It is still
+# accepted, because it sits in the configuration of every client that already
+# added the server, and it still reads its mode from the arguments.
+LEGACY_NAMES = ("python_code_validator", "python-code-validator")
 
 METHOD_NOT_FOUND = -32601
 INTERNAL_ERROR = -32603
 
-TOOL = {
-    "name": TOOL_NAME,
-    "title": "Python code validator",
-    "description": (
-        "Validate Python source and get a verdict: syntax and lint diagnostics, type errors, "
-        "a security policy over the AST, a credential scan and deterministic repair.\n\n"
-        "mode=static (default) never runs the submitted code. mode=repair also returns the "
-        "rewritten source in fixed_code, and keeps the original where it cannot prove the fix. "
-        "mode=execute additionally runs the code in a container sandbox — no network, read-only "
-        "filesystem, killed on timeout — and reports its exit code, stdout and stderr; treat "
-        "that as a side effect and do not submit code you do not want executed.\n"
-        "Auth: the bridge sends VALIDATOR_API_KEY, or mints a free key on first use. The free "
-        "tier covers static only, capped per day (HTTP 429 when spent); repair and execute need "
-        "a paid key and answer 402 without one. Nothing on your machine is read or written: the "
-        "code you pass is sent to https://api.statemind.ai and retained there to improve the "
-        "service.\n"
-        "Returns valid, score 0..1, diagnostics (rule, message, line, column), security "
-        "findings, fixes, fixed_code, runtime and meta. Use it on Python you generated or "
-        "edited before writing it to disk, and prefer static unless you need the fix or proof "
-        "that it runs."
+_WHAT = {
+    "static": (
+        "Validate Python",
+        "Check Python source without running it: parse it, lint it (ruff), type-check it "
+        "(mypy), apply an AST security policy and scan for credentials. Nothing is executed "
+        "and nothing is written, so this is safe on code you do not trust. Use it on every "
+        "Python file you generated or edited, before writing it to disk.",
     ),
-    "inputSchema": {
-        "type": "object",
-        "properties": {
-            "code": {
-                "type": "string",
-                "description": "The Python source to validate. A whole module, not a fragment.",
-                "maxLength": 200000,
-            },
-            "mode": {
-                "type": "string",
-                "enum": ["static", "repair", "execute"],
-                "default": "static",
-                "description": (
-                    "static analyses only and is free; repair also returns fixed code; "
-                    "execute runs it in a sandbox. repair and execute need a paid key."
-                ),
-            },
-            "options": {
-                "type": "object",
-                "description": "Tuning knobs; timeout_s (1-60) bounds execute mode.",
-                "properties": {"timeout_s": {"type": "number", "minimum": 1, "maximum": 60}},
-            },
-        },
-        "required": ["code"],
-    },
-    "outputSchema": {
-        "type": "object",
-        "properties": {
-            "valid": {"type": "boolean", "description": "False when anything is an error."},
-            "score": {"type": "number", "minimum": 0, "maximum": 1},
-            "diagnostics": {
-                "type": "array",
-                "description": "Correctness problems, each with rule, message, line and column.",
-                "items": {"type": "object"},
-            },
-            "security": {"type": "array", "items": {"type": "object"}},
-            "fixes": {"type": "array", "items": {"type": "string"}},
-            "fixed_code": {
-                "type": ["string", "null"],
-                "description": "Repaired source, only in repair and execute mode.",
-            },
-            "runtime": {
-                "type": "object",
-                "description": "Sandbox result, only in execute mode.",
-            },
-            "meta": {"type": "object"},
-        },
-        "required": ["valid", "score", "diagnostics", "security", "meta"],
-    },
-    "annotations": {
-        "title": "Python code validator",
-        # execute runs the submitted code, so the tool is not read-only, but it
-        # only ever touches the service's own throwaway sandbox.
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": True,
-        "openWorldHint": True,
-    },
+    "repair": (
+        "Repair Python",
+        "Everything validate does, plus deterministic fixes: the corrected source comes back "
+        "in fixed_code, and the original is kept whenever the fix cannot be proven safe. The "
+        "code is still never run. Use it when validation failed and you want the fix rather "
+        "than the diagnosis.",
+    ),
+    "execute": (
+        "Execute Python",
+        "Everything repair does, and then RUNS the code in a throwaway container — no network, "
+        "read-only filesystem, killed at options.timeout_s — and reports its exit code, stdout "
+        "and stderr. This is a side effect: do not submit code you do not want executed. Use "
+        "it only when you need proof that the code runs.",
+    ),
 }
+
+_INPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "code": {
+            "type": "string",
+            "description": "The Python source to validate. A whole module, not a fragment.",
+            "maxLength": 200000,
+        },
+        "options": {
+            "type": "object",
+            "description": "Tuning knobs; timeout_s (1-60) bounds execute mode.",
+            "properties": {"timeout_s": {"type": "number", "minimum": 1, "maximum": 60}},
+        },
+    },
+    "required": ["code"],
+}
+
+_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "valid": {"type": "boolean", "description": "False when anything is an error."},
+        "score": {"type": "number", "minimum": 0, "maximum": 1},
+        "diagnostics": {
+            "type": "array",
+            "description": "Correctness problems, each with rule, message, line and column.",
+            "items": {"type": "object"},
+        },
+        "security": {"type": "array", "items": {"type": "object"}},
+        "fixes": {"type": "array", "items": {"type": "string"}},
+        "fixed_code": {
+            "type": ["string", "null"],
+            "description": "Repaired source, only in repair and execute mode.",
+        },
+        "runtime": {"type": "object", "description": "Sandbox result, only in execute mode."},
+        "meta": {"type": "object"},
+    },
+    "required": ["valid", "score", "diagnostics", "security", "meta"],
+}
+
+
+def _tool(name: str, mode: str) -> dict[str, Any]:
+    """Describe one tool the way the service describes it.
+
+    An agent decides from this text alone whether to call the tool, so it says
+    what the call does to the world and what it costs: the free tier covers
+    static only, and only execute runs the submitted code.
+    """
+    title, what = _WHAT[mode]
+    cost = (
+        "A free key covers this call, 100 per day, then HTTP 429; get one with POST /v1/keys."
+        if mode == "static"
+        else "This call needs a paid key and answers HTTP 402 without one."
+    )
+    return {
+        "name": name,
+        "title": title,
+        "description": (
+            f"{what}\n"
+            f"Auth: the bridge sends VALIDATOR_API_KEY, or mints a free key on first use. "
+            f"{cost}\n"
+            "Nothing on your machine is read or written: the code you pass is sent to "
+            "https://api.statemind.ai and retained there to improve the service.\n"
+            "Returns valid, score 0..1, diagnostics (rule, message, line, column), security "
+            "findings, fixes, fixed_code and runtime; see outputSchema."
+        ),
+        "inputSchema": _INPUT_SCHEMA,
+        "outputSchema": _OUTPUT_SCHEMA,
+        "annotations": {
+            "title": title,
+            # Only execute runs the submitted code, and then only in the
+            # service's own throwaway sandbox.
+            "readOnlyHint": mode != "execute",
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": True,
+        },
+    }
+
+
+BUILTIN_TOOLS = [_tool(name, mode) for name, mode in TOOL_MODES.items()]
 
 
 def base_url() -> str:
     return os.environ.get("VALIDATOR_URL", DEFAULT_URL).rstrip("/")
 
 
-def post(path: str, payload: dict[str, Any] | None, key: str | None) -> dict[str, Any]:
+def post(
+    path: str,
+    payload: dict[str, Any] | None,
+    key: str | None,
+    timeout_s: int = TIMEOUT_S,
+) -> dict[str, Any]:
     """POST JSON and return the parsed answer, errors included."""
     request = urllib.request.Request(
         f"{base_url()}{path}",
@@ -130,7 +175,7 @@ def post(path: str, payload: dict[str, Any] | None, key: str | None) -> dict[str
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_S) as answer:
+        with urllib.request.urlopen(request, timeout=timeout_s) as answer:
             return json.loads(answer.read().decode())
     except urllib.error.HTTPError as exc:
         body = exc.read().decode(errors="replace")
@@ -155,12 +200,53 @@ class Bridge:
 
     def __init__(self) -> None:
         self._key = os.environ.get("VALIDATOR_API_KEY") or None
+        self._tools: list[dict[str, Any]] | None = None
 
     def key(self) -> str | None:
         """The configured key, or a free one asked for on first use."""
         if self._key is None:
             self._key = str(post("/v1/keys", None, None)["api_key"])
         return self._key
+
+    def tools(self) -> list[dict[str, Any]]:
+        """What the service offers, asked rather than assumed.
+
+        A bridge that ships its own list goes stale the moment the service
+        gains a tool, and the client never learns. So the list comes from the
+        deployment this bridge points at — ``tools/list`` needs no key — and
+        the built-in one is the answer when it cannot be reached, which is the
+        case in the sandboxes that start a server just to read it.
+        """
+        if self._tools is None:
+            self._tools = self._published() or BUILTIN_TOOLS
+        return self._tools
+
+    def _published(self) -> list[dict[str, Any]] | None:
+        try:
+            answer = post(
+                "/mcp",
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                None,
+                DISCOVERY_TIMEOUT_S,
+            )
+        except (ServiceRefused, OSError, ValueError):
+            return None
+        tools = (answer.get("result") or {}).get("tools")
+        if not isinstance(tools, list) or not tools:
+            return None
+        return [tool for tool in tools if isinstance(tool, dict) and tool.get("name")]
+
+    def mode_of(self, name: Any, arguments: dict[str, Any]) -> str | None:
+        """The mode a call asks for, or None when it names no tool at all."""
+        if name in LEGACY_NAMES:
+            mode = arguments.get("mode")
+            return mode if isinstance(mode, str) else "static"
+        if not isinstance(name, str):
+            return None
+        # Any tool the deployment publishes, including one this bridge
+        # predates, because the verb in the name is the mode it sells.
+        known = name in TOOL_MODES or any(tool.get("name") == name for tool in self.tools())
+        return VERB_MODES.get(name.split("_")[0]) if known else None
 
     def handle(self, message: dict[str, Any]) -> dict[str, Any] | None:
         method = message.get("method")
@@ -176,29 +262,26 @@ class Bridge:
                         asked if asked in PROTOCOL_VERSIONS else PROTOCOL_VERSIONS[0]
                     ),
                     "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "python-code-validator", "version": "1.2.4"},
+                    "serverInfo": {"name": "python-code-validator", "version": VERSION},
                 },
             )
         if method == "tools/list":
-            return result(call_id, {"tools": [TOOL]})
+            return result(call_id, {"tools": self.tools()})
         if method == "tools/call":
             return self.call(call_id, message.get("params") or {})
         return error(call_id, METHOD_NOT_FOUND, f"unsupported method {method!r}")
 
     def call(self, call_id: Any, params: dict[str, Any]) -> dict[str, Any]:
-        if params.get("name") not in {TOOL_NAME, "python-code-validator"}:
+        arguments = dict(params.get("arguments") or {})
+        mode = self.mode_of(params.get("name"), arguments)
+        if mode is None:
             return error(call_id, METHOD_NOT_FOUND, f"unknown tool {params.get('name')!r}")
-        arguments = params.get("arguments") or {}
+        # The tool the caller picked is the mode.
+        arguments["mode"] = mode
         try:
             verdict = post("/v1/validate", arguments, self.key())
         except ServiceRefused as exc:
-            return result(
-                call_id,
-                {
-                    "content": [{"type": "text", "text": json.dumps(exc.detail, indent=2)}],
-                    "isError": True,
-                },
-            )
+            return result(call_id, refusal(exc))
         # A verdict of "this code is broken" is a successful call: ``isError``
         # means the tool itself failed, and a client that sees it may discard
         # the verdict or retry instead of showing it.
@@ -210,6 +293,23 @@ class Bridge:
                 "isError": False,
             },
         )
+
+
+def refusal(exc: ServiceRefused) -> dict[str, Any]:
+    """Render a refused call, keeping the way out the service supplied.
+
+    A refusal reaches an agent with no operator to ask, so the ``remedy`` the
+    service attaches — mint a key, upgrade it, wait for the quota — is carried
+    up beside the text rather than buried in it.
+    """
+    answer: dict[str, Any] = {
+        "content": [{"type": "text", "text": json.dumps(exc.detail, indent=2)}],
+        "isError": True,
+    }
+    remedy = exc.detail.get("remedy")
+    if isinstance(remedy, dict):
+        answer["remedy"] = remedy
+    return answer
 
 
 def result(call_id: Any, payload: Any) -> dict[str, Any]:

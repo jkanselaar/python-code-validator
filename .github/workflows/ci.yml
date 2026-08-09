@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The clients here are standard library only, so what has to hold is
+        # that they run on whatever Python the caller already has.
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: test
+        run: python -m unittest discover -s tests -v
+      - name: lint
+        run: |
+          pipx install ruff==0.14.4
+          ruff check .
+          ruff format --check .
+
+  bridge:
+    # The bridge answering a real client over the process boundary the tests
+    # stub out: the handshake, the tool list and a call.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: the tool list without a service to ask
+        env:
+          VALIDATOR_URL: http://127.0.0.1:9
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            | python3 mcp_stdio.py | python3 -c '
+          import json, sys
+          names = [tool["name"] for tool in json.load(sys.stdin)["result"]["tools"]]
+          assert names == ["validate_python", "repair_python", "execute_python"], names
+          '
+      - name: a call against the live deployment
+        # Depends on a service this repository does not host, so it reports
+        # rather than gates.
+        continue-on-error: true
+        run: |
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"validate_python","arguments":{"code":"x = 1\n"}}}' \
+            | python3 mcp_stdio.py | tee /dev/stderr | python3 -c '
+          import json, sys
+          assert json.load(sys.stdin)["result"]["structuredContent"]["valid"] is True
+          '

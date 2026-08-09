@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.jkanselaar/python-code-validator",
   "title": "Python Code Validator",
-  "description": "Validates, repairs and hardens AI-generated Python: syntax and lint diagnostics, security scanning, deterministic auto-fixes, optional sandboxed execution and Python-to-JavaScript transpilation.",
-  "version": "1.2.4",
+  "description": "Validates, repairs and hardens AI-generated Python. validate_python checks without running it: syntax, lint and type diagnostics with line and column, an AST security policy, a credential scan and the mistakes a linter allows — an unawaited coroutine, a method without self, a swallowed exception. repair_python returns the fixed source; execute_python additionally runs it in a sandbox.",
+  "version": "1.4.1",
   "repository": {
     "url": "https://github.com/jkanselaar/python-code-validator",
     "source": "github"
