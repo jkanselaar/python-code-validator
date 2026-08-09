@@ -23,7 +23,8 @@ before it is cut off.
 ## MCP
 
 Registered in the official MCP registry as
-`io.github.jkanselaar/python-code-validator`. Any MCP client adds it with one
+`ai.statemind/python-code-validator`, a name verified against the domain that
+serves it rather than a GitHub account. Any MCP client adds it with one
 block:
 
 ```json
