@@ -54,10 +54,10 @@ _WHAT = {
     "static": (
         "Validate Python",
         "Check Python source without running it: parse, lint (ruff), type-check (mypy), "
-        "AST security policy, credential scan. Nothing is executed or written, so this is "
-        "safe on code you do not trust. Use it on every Python file you generated or "
-        "edited, before writing it to disk. Alternatives: repair_python to get the "
-        "corrected source instead of the diagnosis; execute_python to prove the code runs.",
+        "AST security policy, credential scan. Safe on code you do not trust. Use it on "
+        "every Python file you generated or edited, before writing it to disk. "
+        "Alternatives: repair_python to get the corrected source instead of the "
+        "diagnosis; execute_python to prove the code runs.",
     ),
     "repair": (
         "Repair Python",
@@ -154,9 +154,13 @@ _INPUT_SCHEMA = {
 # reading only the schema sets timeout_s on a call that never runs anything.
 _ARGUMENTS = {
     "static": (
-        "Arguments: code is the whole file. Of options only transpile_to acts here; "
-        "timeout_s, max_iterations, optimize and expected_output need a pass that "
-        "rewrites or runs the code, so send code alone."
+        "Arguments: code is the whole file, UTF-8, empty is refused with 400 and the "
+        "deployment's size cap with 413; line and column in the answer count from 1 in "
+        "what you sent. Of options only transpile_to acts here; timeout_s, "
+        "max_iterations, optimize and expected_output need a pass that rewrites or runs "
+        "the code, so send code alone — they are ignored rather than refused. Code that "
+        "does not parse is answered, not refused: valid=false with the syntax error "
+        "located."
     ),
     "repair": (
         "Arguments: code is the whole file. options.max_iterations (1..10, default 3) "
