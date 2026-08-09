@@ -117,7 +117,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.6.4
+    rev: v1.6.7
     hooks:
       - id: python-code-validator
 ```

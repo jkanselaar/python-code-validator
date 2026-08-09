@@ -157,6 +157,21 @@ class ToolListTest(BridgeCase):
         options = tools["execute_python"]["inputSchema"]["properties"]["options"]
         self.assertEqual(options["properties"]["max_iterations"]["default"], 3)
 
+    def test_the_offline_description_names_the_tool_to_use_instead(self) -> None:
+        """Three tools that all take Python look interchangeable without this."""
+        self.published = None
+        tools = {tool["name"]: tool for tool in self.list_tools()}
+
+        self.assertIn(
+            "Alternatives: repair_python to get the corrected source",
+            tools["validate_python"]["description"],
+        )
+        self.assertIn(
+            "execute_python when the fix has to be proven to run",
+            tools["repair_python"]["description"],
+        )
+        self.assertIn("validate_python for the diagnosis", tools["execute_python"]["description"])
+
     def test_the_service_is_asked_once(self) -> None:
         self.published = [{"name": "validate_python"}]
         self.list_tools()
