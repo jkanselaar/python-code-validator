@@ -1,0 +1,4 @@
+# The same settings as the service these clients talk to, so a file can move
+# between the two repositories without being reformatted.
+line-length = 100
+target-version = "py310"

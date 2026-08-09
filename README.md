@@ -63,11 +63,22 @@ docker build -t python-code-validator .
 docker run -i --rm -e VALIDATOR_API_KEY python-code-validator
 ```
 
-The tool is `python_code_validator`. One line in a project's agent instructions
-is what makes an agent actually use it:
+Three tools, named after what they do to the code:
 
-> Validate every generated Python file with `python_code_validator` before
-> presenting it. Do not present code the validator marks invalid.
+| tool | runs the code | key |
+| --- | --- | --- |
+| `validate_python` | no | free |
+| `repair_python` — also returns `fixed_code` | no | paid |
+| `execute_python` — also runs it in a sandbox | **yes** | paid |
+
+The old single `python_code_validator` tool, with its `mode` argument, still
+answers for clients that already configured it, but is no longer listed.
+
+One line in a project's agent instructions is what makes an agent actually use
+any of it:
+
+> Validate every generated Python file with `validate_python` before presenting
+> it. Do not present code the validator marks invalid.
 
 ## CI
 
@@ -98,7 +109,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.2.4
+    rev: v1.4.1
     hooks:
       - id: python-code-validator
 ```
@@ -130,6 +141,14 @@ curl -s https://api.statemind.ai/v1/validate \
 
 `mode` is `static`, `repair` or `execute`; `repair` and `execute` need a
 configured key. Submitted code is not logged.
+
+A refused call says what to do about it, so a caller with no operator to ask can
+resolve it itself:
+
+```json
+{"error": "payment_required",
+ "remedy": {"action": "upgrade_key", "hint": "A free key covers static only. …"}}
+```
 
 ## Licence
 
