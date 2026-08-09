@@ -79,16 +79,97 @@ _INPUT_SCHEMA = {
     "properties": {
         "code": {
             "type": "string",
-            "description": "The Python source to validate. A whole module, not a fragment.",
+            "description": (
+                "The Python source to check, a whole module rather than a fragment: "
+                "diagnostics carry the line and column of the text you send, and a "
+                "fragment hides the imports and definitions the type check needs."
+            ),
+            "minLength": 1,
             "maxLength": 200000,
         },
         "options": {
             "type": "object",
-            "description": "Tuning knobs; timeout_s (1-60) bounds execute mode.",
-            "properties": {"timeout_s": {"type": "number", "minimum": 1, "maximum": 60}},
+            "description": (
+                "Tuning knobs. Each one only acts in the mode that does the "
+                "corresponding work, and this tool fixes the mode by its name."
+            ),
+            "properties": {
+                "timeout_s": {
+                    "type": "number",
+                    "description": (
+                        "Wall clock for the run, execute mode only; omitted means the "
+                        "service default. The deployment may cap it below 60 and "
+                        "refuses a larger value."
+                    ),
+                    "exclusiveMinimum": 0,
+                    "maximum": 60,
+                },
+                "max_iterations": {
+                    "type": "integer",
+                    "description": (
+                        "Fix/verify rounds the repair loop may take: raise it for a "
+                        "file with several independent faults. Ignored in validate."
+                    ),
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 3,
+                },
+                "optimize": {
+                    "type": "boolean",
+                    "description": (
+                        "Also fold constants and drop dead code, in repair and "
+                        "execute. Off by default: it rewrites the program, and the "
+                        "rewrite only comes back when every effectful construct "
+                        "provably survives."
+                    ),
+                    "default": False,
+                },
+                "expected_output": {
+                    "type": "string",
+                    "description": (
+                        "Exact stdout the program must produce, execute mode only. A "
+                        "mismatch is an 'expected-output' diagnostic and makes the "
+                        "response invalid even when the program exits cleanly."
+                    ),
+                },
+                "transpile_to": {
+                    "type": "string",
+                    "description": (
+                        "Language for a translated copy in transpiled, e.g. "
+                        "'javascript'. Made from the code as it ends up, so in repair "
+                        "and execute it translates the repaired source."
+                    ),
+                },
+            },
         },
     },
     "required": ["code"],
+}
+
+# What the schema cannot say: which knob does anything in which tool. An agent
+# reading only the schema sets timeout_s on a call that never runs anything.
+_ARGUMENTS = {
+    "static": (
+        "Arguments: code is the whole file. Of options only transpile_to does anything "
+        "here; timeout_s, max_iterations, optimize and expected_output all need "
+        "repair_python or execute_python, so send code alone and call repair_python if "
+        "you want the fix rather than the diagnosis."
+    ),
+    "repair": (
+        "Arguments: code is the whole file. options.max_iterations (1..10, default 3) "
+        "caps the fix/verify rounds and options.optimize (default false) adds the "
+        "rewrite; fixed_code is null when nothing could be proven safe to change, which "
+        "means 'no fix', not an error. options.timeout_s and options.expected_output do "
+        "nothing here: nothing is run, so there is no clock and no stdout."
+    ),
+    "execute": (
+        "Arguments: code is the whole file, and options.timeout_s is the wall clock for "
+        "the run (the deployment may cap it below the 60 the schema allows and refuses a "
+        "larger value). options.expected_output compares stdout byte for byte, which is "
+        "how you ask for 'it did the right thing' rather than 'it ran'. The program that "
+        "runs is the repaired one, so read fixed_code before you trust runtime.stdout, "
+        "and it runs exactly once however many rounds the repair took."
+    ),
 }
 
 _OUTPUT_SCHEMA = {
@@ -134,6 +215,7 @@ def _tool(name: str, mode: str) -> dict[str, Any]:
             f"{what}\n"
             f"Auth: the bridge sends VALIDATOR_API_KEY, or mints a free key on first use. "
             f"{cost}\n"
+            f"{_ARGUMENTS[mode]}\n"
             "Nothing on your machine is read or written: the code you pass is sent to "
             "https://api.statemind.ai and retained there to improve the service.\n"
             "Returns valid, score 0..1, diagnostics (rule, message, line, column), security "

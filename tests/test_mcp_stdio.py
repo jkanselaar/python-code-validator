@@ -142,6 +142,21 @@ class ToolListTest(BridgeCase):
         # The tool name already fixed the mode, so it is not an argument.
         self.assertNotIn("mode", validate["inputSchema"]["properties"])
 
+    def test_the_offline_description_says_which_options_act(self) -> None:
+        """The schema lists every knob for every tool; only some of them act."""
+        self.published = None
+        tools = {tool["name"]: tool for tool in self.list_tools()}
+
+        validate = tools["validate_python"]["description"]
+        self.assertIn("timeout_s, max_iterations, optimize and expected_output", validate)
+        repair = tools["repair_python"]["description"]
+        self.assertIn("max_iterations (1..10, default 3)", repair)
+        self.assertIn("do nothing here", repair)
+        execute = tools["execute_python"]["description"]
+        self.assertIn("expected_output compares stdout byte for byte", execute)
+        options = tools["execute_python"]["inputSchema"]["properties"]["options"]
+        self.assertEqual(options["properties"]["max_iterations"]["default"], 3)
+
     def test_the_service_is_asked_once(self) -> None:
         self.published = [{"name": "validate_python"}]
         self.list_tools()
