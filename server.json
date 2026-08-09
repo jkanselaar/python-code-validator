@@ -3,7 +3,7 @@
   "name": "io.github.jkanselaar/python-code-validator",
   "title": "Python Code Validator",
   "description": "Validates, repairs and sandbox-runs AI-generated Python: lint, types, security, exact fixes.",
-  "version": "1.4.1",
+  "version": "1.6.4",
   "repository": {
     "url": "https://github.com/jkanselaar/python-code-validator",
     "source": "github"
