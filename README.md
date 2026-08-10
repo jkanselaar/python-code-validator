@@ -100,7 +100,7 @@ examples already written in the source. `execute_python` runs them in the
 sandbox: one that does not hold is a `python:example-mismatch` error, and the
 repair search returns a fix only when every example passes. On the QuixBugs
 defect set — real bugs, hidden test inputs deciding correctness — that repairs
-18% and refuses 77% as not doing what they say, with no false alarms on the
+41% and refuses 77% as not doing what they say, with no false alarms on the
 corrected programs.
 
 ## Making the agent use it
@@ -139,7 +139,7 @@ repository and no secret:
 Or as an action, from the Marketplace:
 
 ```yaml
-- uses: jkanselaar/python-code-validator@v1.17.1
+- uses: jkanselaar/python-code-validator@v1.18.0
   with:
     api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
 ```
@@ -154,7 +154,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.17.1
+    rev: v1.18.0
     hooks:
       - id: python-code-validator
 ```
