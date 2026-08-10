@@ -103,6 +103,11 @@ defect set — real bugs, hidden test inputs deciding correctness — that repai
 41% and refuses 77% as not doing what they say, with no false alarms on the
 corrected programs.
 
+Repeating a call costs nothing: the same key asking the same question — same
+mode, same code, same examples — is answered from the answer it already got,
+marked `x-msvc-repeat: 1`, so an agent that checks its work at every step is not
+billed for verdicts that cannot have changed.
+
 ## Making the agent use it
 
 Configuring the server is not what gets it called: the instruction file is.
@@ -142,7 +147,7 @@ repository and no secret:
 Or as an action, from the Marketplace:
 
 ```yaml
-- uses: jkanselaar/python-code-validator@v1.18.0
+- uses: jkanselaar/python-code-validator@v1.19.0
   with:
     api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
 ```
@@ -157,7 +162,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.18.0
+    rev: v1.19.0
     hooks:
       - id: python-code-validator
 ```
