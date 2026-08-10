@@ -10,9 +10,10 @@ check that can fail code which parses, lints, type-checks and runs.
 Call `validate_python` after every draft or edit: it parses, lints (ruff),
 type-checks (mypy), applies an AST security policy and scans for credentials,
 without running anything. Call `execute_python` with your examples once a
-function is finished and after every change to it; it runs the code in a
-throwaway container with no network. `repair_python` is the same repair without
-running anything.
+function is finished, and again only when what the code does has changed — never
+twice on the same source, and not after a rename or a reformat: it runs the code
+in a throwaway container with no network, and costs ten times what a check
+costs. `repair_python` is the same repair without running anything.
 
 When something comes back wrong, read `fixed_code` first: when it is filled in,
 the service already ran a program that satisfies your examples, so take it

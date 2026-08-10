@@ -124,9 +124,9 @@ have:
 
 > Write what the code should do as `assert` examples before writing the code,
 > and pass them in `options.examples`. Call `validate_python` after every edit
-> and `execute_python` once a function is finished. When a call returns
-> `fixed_code`, take it — the service ran it against your examples. Do not
-> present code that came back `valid: false`.
+> and `execute_python` once a function is finished, not again until what it
+> does has changed. When a call returns `fixed_code`, take it — the service ran
+> it against your examples. Do not present code that came back `valid: false`.
 
 ## CI
 

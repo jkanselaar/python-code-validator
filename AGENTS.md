@@ -16,10 +16,12 @@ asked knows what was asked, and nothing else does.
 - After every draft or edit of a file, call `validate_python`. It parses, lints
   (ruff), type-checks (mypy), applies an AST security policy and scans for
   credentials, without running anything.
-- When a function is finished — and after every change to it afterwards — call
-  `execute_python` with your examples. It runs the code in a throwaway container
-  with no network and a read-only filesystem, and checks the examples against
-  what it actually does.
+- When a function is finished, call `execute_python` with your examples. It runs
+  the code in a throwaway container with no network and a read-only filesystem,
+  and checks the examples against what it actually does. Call it again when what
+  the code *does* has changed — not after renaming a variable, reformatting, or
+  editing a comment, and never twice on the same source: the answer cannot
+  differ, and running it costs the caller ten times what a check costs.
 - `repair_python` is the same repair without running anything: use it when the
   code is not meant to run, or when the checks alone already name the problem.
 
