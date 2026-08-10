@@ -120,10 +120,10 @@ repository and no secret:
     python3 validate.py --changed-against "origin/${{ github.base_ref }}"
 ```
 
-Or as an action:
+Or as an action, from the Marketplace:
 
 ```yaml
-- uses: jkanselaar/python-code-validator/.github/actions/validate-python@main
+- uses: jkanselaar/python-code-validator@v1.17.0
   with:
     api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
 ```
@@ -138,7 +138,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.16.0
+    rev: v1.17.0
     hooks:
       - id: python-code-validator
 ```
@@ -157,7 +157,19 @@ FAIL service.py score=0.66
 ```
 
 `VALIDATOR_API_KEY` is used when set; otherwise the client mints a free key.
-`VALIDATOR_URL` points it at another deployment.
+`VALIDATOR_URL` points it at another deployment. `VALIDATOR_SOURCE` names the
+caller, which is only ever counted: a run inside a workflow says
+`github-action` by itself.
+
+## The badge
+
+A repository whose Python is checked on every pull request can say so:
+
+```markdown
+[![Python validated](https://img.shields.io/badge/python-validated-2ea44f?logo=python&logoColor=white)](https://api.statemind.ai/?src=badge)
+```
+
+[![Python validated](https://img.shields.io/badge/python-validated-2ea44f?logo=python&logoColor=white)](https://api.statemind.ai/?src=badge)
 
 ## HTTP
 

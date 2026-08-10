@@ -26,6 +26,18 @@ jobs:
           ruff check .
           ruff format --check .
 
+  action:
+    # The action as a caller uses it, on this repository's own Python. It talks
+    # to the live deployment, so it reports rather than gates.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          files: validate.py mcp_stdio.py
+          allow-security-findings: "true"
+
   bridge:
     # The bridge answering a real client over the process boundary the tests
     # stub out: the handshake, the tool list and a call.

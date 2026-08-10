@@ -29,7 +29,7 @@ TIMEOUT_S = 60
 # A client blocks on tools/list before it can do anything, so asking the
 # service what it offers must fail fast and hand over to the built-in list.
 DISCOVERY_TIMEOUT_S = 5
-VERSION = "1.16.0"
+VERSION = "1.17.0"
 
 # Newest first: a client's requested version wins when we know it, otherwise it
 # is told what we do speak and decides.
