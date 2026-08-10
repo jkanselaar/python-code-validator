@@ -3,7 +3,7 @@
   "name": "ai.statemind/python-code-validator",
   "title": "Python Code Validator",
   "description": "Proves AI-generated Python does what you asked: lint, types, security, sandbox run, exact fixes.",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "repository": {
     "url": "https://github.com/jkanselaar/python-code-validator",
     "source": "github"

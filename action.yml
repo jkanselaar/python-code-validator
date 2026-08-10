@@ -1,8 +1,9 @@
 name: Validate AI-generated Python
+# The marketplace refuses anything over 125 characters, and this is the line a
+# repository reads before it adopts the check.
 description: >-
-  Prove the Python in a pull request runs and is safe: syntax, lint, types, an
-  AST security policy, a credential scan and deterministic repair. No install
-  and no secret — the action asks the hosted service for a free key.
+  Proves AI-generated Python does what you asked: lint, types, security, exact
+  fixes. No install, no secret.
 author: jkanselaar
 branding:
   icon: check-circle
