@@ -103,8 +103,24 @@ defect set — real bugs, hidden test inputs deciding correctness — that repai
 18% and refuses 77% as not doing what they say, with no false alarms on the
 corrected programs.
 
-One line in a project's agent instructions is what makes an agent actually use
-any of it:
+## Making the agent use it
+
+Configuring the server is not what gets it called: the instruction file is.
+[`AGENTS.md`](AGENTS.md) in this repository is that text, written to be dropped
+into any project under whichever name the client reads:
+
+```bash
+mkdir -p .github
+curl -sf https://raw.githubusercontent.com/jkanselaar/python-code-validator/main/AGENTS.md \
+  | tee AGENTS.md CLAUDE.md GEMINI.md .github/copilot-instructions.md >/dev/null
+```
+
+Cursor reads rules with front matter instead, so that one is a separate file —
+copy [`.cursor/rules/python-code-validator.mdc`](.cursor/rules/python-code-validator.mdc)
+into `.cursor/rules/` of the project.
+
+The short version, if you would rather add a line to instructions you already
+have:
 
 > Validate every generated Python file with `validate_python` before presenting
 > it. Do not present code the validator marks invalid.
