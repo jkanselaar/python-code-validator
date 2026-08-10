@@ -122,8 +122,11 @@ into `.cursor/rules/` of the project.
 The short version, if you would rather add a line to instructions you already
 have:
 
-> Validate every generated Python file with `validate_python` before presenting
-> it. Do not present code the validator marks invalid.
+> Write what the code should do as `assert` examples before writing the code,
+> and pass them in `options.examples`. Call `validate_python` after every edit
+> and `execute_python` once a function is finished. When a call returns
+> `fixed_code`, take it — the service ran it against your examples. Do not
+> present code that came back `valid: false`.
 
 ## CI
 
