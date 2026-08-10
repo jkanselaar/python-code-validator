@@ -11,7 +11,10 @@ Two more tools are available when a diagnosis is not enough:
   means nothing could be proven safe to change, not that the call failed.
 - `execute_python` runs the repaired source in a throwaway container — no
   network, read-only filesystem — and reports its exit code, stdout and stderr.
-  It is a side effect: only use it when the code is meant to run.
+  It is a side effect: only use it when the code is meant to run. Pass what you
+  asked the code to do in `options.examples` (`assert f(2) == 4`, or doctest
+  lines): every other check passes on code that computes the wrong answer, and
+  this is the one that does not.
 
 Both need a configured key; without one, `validate_python` still works on the
 free allowance the bridge mints for itself.

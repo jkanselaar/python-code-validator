@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "ai.statemind/python-code-validator",
   "title": "Python Code Validator",
-  "description": "Validates, repairs and sandbox-runs AI-generated Python: lint, types, security, exact fixes.",
-  "version": "1.6.7",
+  "description": "Proves AI-generated Python does what you asked: lint, types, security, sandbox run, exact fixes.",
+  "version": "1.16.0",
   "repository": {
     "url": "https://github.com/jkanselaar/python-code-validator",
     "source": "github"

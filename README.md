@@ -3,7 +3,9 @@
 A hosted service that checks AI-generated Python before it ships: syntax and
 lint diagnostics, an AST security policy that also catches calls hidden behind
 dynamic imports and runtime attribute lookups, a bandit pass, a credential scan
-and deterministic repair — one verdict with a score.
+and deterministic repair — one verdict with a score. Code that parses, lints,
+type-checks and runs can still be wrong, so it also checks the code against what
+you asked for.
 
 This repository holds the client side: the MCP configuration, the CI script and
 the pre-commit hook. The service itself runs at `https://api.statemind.ai`, so
@@ -82,6 +84,25 @@ Three tools, named after what they do to the code:
 The old single `python_code_validator` tool, with its `mode` argument, still
 answers for clients that already configured it, but is no longer listed.
 
+## Saying what the code was supposed to do
+
+Every check above passes on a function that computes the wrong answer. The one
+thing that catches it is the intent, and the agent that asked for the code is
+the only one who has it — so pass it along:
+
+```json
+{"code": "def bitcount(n): …", "mode": "execute",
+ "options": {"examples": "assert bitcount(127) == 7"}}
+```
+
+Doctest lines (`>>> bitcount(127)` then `7`) work the same way, as do `>>>`
+examples already written in the source. `execute_python` runs them in the
+sandbox: one that does not hold is a `python:example-mismatch` error, and the
+repair search returns a fix only when every example passes. On the QuixBugs
+defect set — real bugs, hidden test inputs deciding correctness — that repairs
+18% and refuses 77% as not doing what they say, with no false alarms on the
+corrected programs.
+
 One line in a project's agent instructions is what makes an agent actually use
 any of it:
 
@@ -117,7 +138,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.6.7
+    rev: v1.16.0
     hooks:
       - id: python-code-validator
 ```
