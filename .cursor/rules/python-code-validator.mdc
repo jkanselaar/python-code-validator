@@ -1,19 +1,26 @@
 ---
-description: Validate generated Python before presenting it
+description: Validate generated Python at every step, not once at the end
 alwaysApply: true
 ---
 
-Validate every Python file you generate or edit with the `validate_python`
-tool before presenting it, and do not present code the validator marks
-invalid — fix it and validate again. It parses, lints (ruff), type-checks
-(mypy), applies an AST security policy and scans for credentials, without
+Write the intent as examples before the code — `assert f(2) == 4`, or doctest
+lines — and pass them in `options.examples` on every call. That is the only
+check that can fail code which parses, lints, type-checks and runs.
+
+Call `validate_python` after every draft or edit: it parses, lints (ruff),
+type-checks (mypy), applies an AST security policy and scans for credentials,
+without running anything. Call `execute_python` with your examples once a
+function is finished and after every change to it; it runs the code in a
+throwaway container with no network. `repair_python` is the same repair without
 running anything.
 
-When a diagnosis is not enough, `repair_python` returns the corrected source
-in `fixed_code`, and `execute_python` runs it in a throwaway container with no
-network. Pass what you asked the code to do in `options.examples`
-(`assert f(2) == 4`, or doctest lines): every other check passes on code that
-computes the wrong answer, and this is the one that does not.
+When something comes back wrong, read `fixed_code` first: when it is filled in,
+the service already ran a program that satisfies your examples, so take it
+instead of rewriting the algorithm yourself. A null there means nothing could be
+proven — rewrite it using the diagnostics as evidence, and validate again.
+
+Do not present code that came back `valid: false`. The `score` is a quality
+signal, not a gate: a missing type annotation lowers it and breaks nothing.
 
 The code you pass is sent to `https://api.statemind.ai` and retained there to
 improve the service.
