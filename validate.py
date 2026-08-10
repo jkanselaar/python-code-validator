@@ -36,10 +36,22 @@ class HttpFailed(SystemExit):
         self.status = status
 
 
+def _source() -> str:
+    """What to call this caller, so its traffic is separable from the rest.
+
+    A run inside a workflow says so by itself; anything else can say it with
+    ``VALIDATOR_SOURCE``. The service only ever counts it.
+    """
+    if os.environ.get("VALIDATOR_SOURCE"):
+        return os.environ["VALIDATOR_SOURCE"]
+    return "github-action" if os.environ.get("GITHUB_ACTIONS") == "true" else "ci-client"
+
+
 def _post(url: str, payload: dict | None, key: str | None = None) -> dict:
     body = json.dumps(payload).encode() if payload is not None else b""
     request = urllib.request.Request(url, data=body, method="POST")
     request.add_header("content-type", "application/json")
+    request.add_header("x-client", _source())
     if key:
         request.add_header("authorization", f"Bearer {key}")
     try:

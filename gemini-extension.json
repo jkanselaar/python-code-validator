@@ -1,6 +1,6 @@
 {
   "name": "python-code-validator",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "description": "Prove AI-generated Python does what you asked: lint, types, security, sandbox run and exact fixes.",
   "contextFileName": "GEMINI.md",
   "mcpServers": {
