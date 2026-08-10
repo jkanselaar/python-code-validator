@@ -29,7 +29,7 @@ TIMEOUT_S = 60
 # A client blocks on tools/list before it can do anything, so asking the
 # service what it offers must fail fast and hand over to the built-in list.
 DISCOVERY_TIMEOUT_S = 5
-VERSION = "1.6.7"
+VERSION = "1.16.0"
 
 # Newest first: a client's requested version wins when we know it, otherwise it
 # is told what we do speak and decides.
@@ -136,6 +136,19 @@ _INPUT_SCHEMA = {
                         "response invalid even when the program exits cleanly."
                     ),
                 },
+                "examples": {
+                    "type": "string",
+                    "description": (
+                        "What the code is supposed to do, execute mode only: doctest "
+                        "lines ('>>> f(2)' then '4') or plain assertions "
+                        "('assert f(2) == 4'). They are run against the code, one that "
+                        "does not hold is a 'python:example-mismatch' error, and repair "
+                        "searches for a single-token change that makes them all pass. "
+                        "This is the only way the service can tell code that runs from "
+                        "code that is right, so send it whenever you know what you "
+                        "asked for."
+                    ),
+                },
                 "transpile_to": {
                     "type": "string",
                     "description": (
@@ -157,8 +170,8 @@ _ARGUMENTS = {
         "Arguments: code is the whole file, UTF-8, empty is refused with 400 and the "
         "deployment's size cap with 413; line and column in the answer count from 1 in "
         "what you sent. Of options only transpile_to acts here; timeout_s, "
-        "max_iterations, optimize and expected_output need a pass that rewrites or runs "
-        "the code, so send code alone — they are ignored rather than refused. Code that "
+        "max_iterations, optimize, examples and expected_output need a pass that rewrites "
+        "or runs the code, so send code alone — they are ignored rather than refused. Code that "
         "does not parse is answered, not refused: valid=false with the syntax error "
         "located."
     ),
@@ -167,14 +180,16 @@ _ARGUMENTS = {
         "caps the fix/verify rounds and options.optimize (default false) adds the "
         "rewrite; fixed_code is null when nothing could be proven safe to change, which "
         "means 'no fix', not an error. options.timeout_s and options.expected_output do "
-        "nothing here: nothing is run, so there is no clock and no stdout."
+        "nothing here, and neither does options.examples: nothing is run, so there is no "
+        "clock, no stdout, and no way to check an example."
     ),
     "execute": (
         "Arguments: code is the whole file, and options.timeout_s is the wall clock for "
         "the run (the deployment may cap it below the 60 the schema allows and refuses a "
         "larger value). options.expected_output compares stdout byte for byte, which is "
-        "how you ask for 'it did the right thing' rather than 'it ran'. The program that "
-        "runs is the repaired one, so read fixed_code before you trust runtime.stdout, "
+        "how you ask for 'it did the right thing' rather than 'it ran'; options.examples "
+        "is the same question for code with no output, and each one is run against the "
+        "code. The program that runs is the repaired one, so read fixed_code before you trust runtime.stdout, "
         "and it runs exactly once however many rounds the repair took."
     ),
 }

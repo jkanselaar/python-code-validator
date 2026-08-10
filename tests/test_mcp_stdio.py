@@ -148,12 +148,13 @@ class ToolListTest(BridgeCase):
         tools = {tool["name"]: tool for tool in self.list_tools()}
 
         validate = tools["validate_python"]["description"]
-        self.assertIn("timeout_s, max_iterations, optimize and expected_output", validate)
+        self.assertIn("timeout_s, max_iterations, optimize, examples and expected_output", validate)
         repair = tools["repair_python"]["description"]
         self.assertIn("max_iterations (1..10, default 3)", repair)
         self.assertIn("do nothing here", repair)
         execute = tools["execute_python"]["description"]
         self.assertIn("expected_output compares stdout byte for byte", execute)
+        self.assertIn("options.examples is the same question", execute)
         options = tools["execute_python"]["inputSchema"]["properties"]["options"]
         self.assertEqual(options["properties"]["max_iterations"]["default"], 3)
 
