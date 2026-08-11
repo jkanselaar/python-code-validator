@@ -1,6 +1,6 @@
 {
   "name": "python-code-validator",
-  "version": "1.20.2",
+  "version": "1.21.0",
   "description": "Prove AI-generated Python does what you asked: lint, types, security, sandbox run and exact fixes.",
   "contextFileName": "GEMINI.md",
   "mcpServers": {
@@ -13,7 +13,7 @@
   "settings": [
     {
       "name": "Validator API key",
-      "description": "Optional. Without one the bridge mints a free key on first use, good for 100 static validations a day. A configured key adds repair and execute. Get one with: curl -s -X POST https://api.statemind.ai/v1/keys",
+      "description": "Optional. Without one the bridge mints a free key on first use, good for 25 static validations a day. A configured key adds repair and execute. Get one with: curl -s -X POST https://api.statemind.ai/v1/keys",
       "envVar": "VALIDATOR_API_KEY",
       "sensitive": true
     }

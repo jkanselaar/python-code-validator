@@ -153,7 +153,7 @@ repository and no secret:
 Or as an action, from the Marketplace:
 
 ```yaml
-- uses: jkanselaar/python-code-validator@v1.20.2
+- uses: jkanselaar/python-code-validator@v1.21.0
   with:
     api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
 ```
@@ -168,7 +168,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.20.2
+    rev: v1.21.0
     hooks:
       - id: python-code-validator
 ```
@@ -223,9 +223,11 @@ resolve it itself:
 
 ## Paying for calls
 
-A free key covers 100 static checks a day. Beyond that a key carries credits: a
-static check costs 1, a repair 3 and a sandboxed run 10, and an identical call
-repeated within ten minutes is answered from the first one for free.
+A free key covers 25 static checks a day, and one address gets a few keys a day,
+so the allowance is a trial rather than a supply. Beyond it a key carries
+credits: a static check costs 1, a repair 3 and a sandboxed run 10, and an
+identical call repeated within ten minutes is answered from the first one for
+free.
 
 Credits are bought with a card, without an invoice or anyone to ask:
 
