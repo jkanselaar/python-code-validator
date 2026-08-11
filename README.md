@@ -153,7 +153,7 @@ repository and no secret:
 Or as an action, from the Marketplace:
 
 ```yaml
-- uses: jkanselaar/python-code-validator@v1.19.2
+- uses: jkanselaar/python-code-validator@v1.20.2
   with:
     api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
 ```
@@ -168,7 +168,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.19.2
+    rev: v1.20.2
     hooks:
       - id: python-code-validator
 ```
@@ -220,6 +220,24 @@ resolve it itself:
 {"error": "payment_required",
  "remedy": {"action": "upgrade_key", "hint": "A free key covers static only. …"}}
 ```
+
+## Paying for calls
+
+A free key covers 100 static checks a day. Beyond that a key carries credits: a
+static check costs 1, a repair 3 and a sandboxed run 10, and an identical call
+repeated within ten minutes is answered from the first one for free.
+
+Credits are bought with a card, without an invoice or anyone to ask:
+
+```bash
+curl -s -X POST https://api.statemind.ai/v1/keys/checkout \
+  -H 'content-type: application/json' \
+  -d '{"api_key": "'"$VALIDATOR_API_KEY"'", "credits": 500}'
+```
+
+That answers with a Stripe Checkout page; the credits are on the key seconds
+after the card clears (500 credits is €10). An agent with a Gnosis wallet can
+instead pay in xDAI without a browser — `GET /v1/pricing` states both routes.
 
 ## Licence
 
