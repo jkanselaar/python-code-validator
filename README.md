@@ -1,11 +1,17 @@
 # Python Code Validator
 
-A hosted service that checks AI-generated Python before it ships: syntax and
-lint diagnostics, an AST security policy that also catches calls hidden behind
-dynamic imports and runtime attribute lookups, a bandit pass, a credential scan
-and deterministic repair — one verdict with a score. Code that parses, lints,
-type-checks and runs can still be wrong, so it also checks the code against what
-you asked for.
+A hosted service that proves AI-generated Python does what you asked. State the
+intent — assertions or doctest lines — and the code is run against it inside a
+container with no network and a read-only filesystem; a fix comes back only when
+every example passes. On the QuixBugs defects that is 41% repaired and 77%
+refused as not doing what they say, with no false alarms on the corrected
+programs.
+
+The checks that need no intent come with it: syntax and lint diagnostics, an AST
+security policy that also catches calls hidden behind dynamic imports and runtime
+attribute lookups, a bandit pass, a credential scan and deterministic repair —
+one verdict with a score. Asking the same question twice inside ten minutes is
+answered from the first answer and costs nothing (`x-msvc-repeat: 1`).
 
 This repository holds the client side: the MCP configuration, the CI script and
 the pre-commit hook. The service itself runs at `https://api.statemind.ai`, so
@@ -147,7 +153,7 @@ repository and no secret:
 Or as an action, from the Marketplace:
 
 ```yaml
-- uses: jkanselaar/python-code-validator@v1.19.0
+- uses: jkanselaar/python-code-validator@v1.19.2
   with:
     api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
 ```
@@ -162,7 +168,7 @@ the run.
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.19.0
+    rev: v1.19.2
     hooks:
       - id: python-code-validator
 ```
