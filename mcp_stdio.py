@@ -29,7 +29,7 @@ TIMEOUT_S = 60
 # A client blocks on tools/list before it can do anything, so asking the
 # service what it offers must fail fast and hand over to the built-in list.
 DISCOVERY_TIMEOUT_S = 5
-VERSION = "1.20.2"
+VERSION = "1.21.0"
 
 # Newest first: a client's requested version wins when we know it, otherwise it
 # is told what we do speak and decides.
@@ -226,7 +226,7 @@ def _tool(name: str, mode: str) -> dict[str, Any]:
     """
     title, what = _WHAT[mode]
     cost = (
-        "A free key covers this call, 100 per day, then HTTP 429; get one with POST /v1/keys."
+        "A free key covers this call, 25 per day, then HTTP 429; get one with POST /v1/keys."
         if mode == "static"
         else "This call needs a paid key and answers HTTP 402 without one."
     )
