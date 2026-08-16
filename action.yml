@@ -34,14 +34,42 @@ inputs:
     description: Report security findings as warnings instead of failing the job.
     required: false
     default: "false"
+  comment:
+    description: >-
+      Summarise the run in one comment on the pull request, edited in place on
+      later pushes. Needs `permissions: pull-requests: write`; without a usable
+      token nothing is written and the job is unaffected.
+    required: false
+    default: "true"
+  github-token:
+    description: Token used to write the pull request comment.
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: composite
   steps:
+    # A key minted per run starts every run at zero, so the daily allowance is
+    # never reached and the repository never learns what the service costs. One
+    # key per repository per day, kept in the workflow cache, makes the allowance
+    # a property of the repository instead of the run.
+    - name: Name today's key cache
+      id: keycache
+      shell: bash
+      run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+    - name: Restore the validator key
+      if: inputs.api-key == ''
+      uses: actions/cache@v4
+      with:
+        # Outside the checkout, so a step that commits repairs cannot commit the
+        # key with them.
+        path: ~/.cache/python-code-validator
+        key: python-code-validator-key-${{ github.repository }}-${{ steps.keycache.outputs.day }}
     - name: Validate
       shell: bash
       env:
         VALIDATOR_API_KEY: ${{ inputs.api-key }}
+        VALIDATOR_KEY_FILE: ${{ inputs.api-key == '' && '~/.cache/python-code-validator/key' || '' }}
         VALIDATOR_URL: ${{ inputs.url }}
         VALIDATOR_SOURCE: github-action
         FILES: ${{ inputs.files }}
@@ -50,10 +78,13 @@ runs:
         BASE_REF: ${{ inputs.base-ref || (github.base_ref && format('origin/{0}', github.base_ref)) || 'HEAD^' }}
         MODE: ${{ inputs.mode }}
         ALLOW: ${{ inputs.allow-security-findings }}
+        COMMENT: ${{ inputs.comment }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         set -euo pipefail
         args=(--mode "$MODE" --url "$VALIDATOR_URL")
         [ "$ALLOW" = "true" ] && args+=(--allow-security-findings)
+        [ "$COMMENT" = "true" ] && args+=(--comment)
         if [ -n "$FILES" ]; then
           # shellcheck disable=SC2086
           python3 "${{ github.action_path }}/validate.py" "${args[@]}" $FILES

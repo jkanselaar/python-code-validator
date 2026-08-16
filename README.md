@@ -153,9 +153,13 @@ repository and no secret:
 Or as an action, from the Marketplace:
 
 ```yaml
-- uses: jkanselaar/python-code-validator@v1.21.0
-  with:
-    api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
+permissions:
+  contents: read
+  pull-requests: write   # so the run can comment its result on the pull request
+steps:
+  - uses: jkanselaar/python-code-validator@v1.22.0
+    with:
+      api-key: ${{ secrets.VALIDATOR_API_KEY }}   # optional; free tier without it
 ```
 
 The changed Python is validated and offending lines are annotated on the diff,
@@ -163,12 +167,21 @@ failing the job on syntax errors and unsafe patterns. Files the service refuses
 outright (over its 200 kB limit) are skipped with a warning rather than failing
 the run.
 
+The run also leaves one comment on the pull request, edited in place on later
+pushes rather than repeated: what was accepted, what was repaired and how much of
+the day's allowance is left. Without `pull-requests: write` nothing is written
+and the job is unaffected; `comment: "false"` turns it off.
+
+On the free tier the action keeps its key in the workflow cache, one per
+repository per day, so the allowance belongs to the repository rather than to the
+run. With `api-key` set the cache is skipped.
+
 ## Pre-commit
 
 ```yaml
 repos:
   - repo: https://github.com/jkanselaar/python-code-validator
-    rev: v1.21.0
+    rev: v1.22.0
     hooks:
       - id: python-code-validator
 ```
@@ -186,10 +199,11 @@ FAIL service.py score=0.66
 0/1 files accepted
 ```
 
-`VALIDATOR_API_KEY` is used when set; otherwise the client mints a free key.
-`VALIDATOR_URL` points it at another deployment. `VALIDATOR_SOURCE` names the
-caller, which is only ever counted: a run inside a workflow says
-`github-action` by itself.
+`VALIDATOR_API_KEY` is used when set; otherwise the client mints a free key —
+keeping it in `VALIDATOR_KEY_FILE` when that names a path, which is how a series
+of runs shares one allowance. `VALIDATOR_URL` points it at another deployment.
+`VALIDATOR_SOURCE` names the caller, which is only ever counted: a run inside a
+workflow says `github-action` by itself.
 
 ## The badge
 
