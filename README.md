@@ -5,7 +5,8 @@ intent — assertions or doctest lines — and the code is run against it inside
 container with no network and a read-only filesystem; a fix comes back only when
 every example passes. On the QuixBugs defects that is 41% repaired and 77%
 refused as not doing what they say, with no false alarms on the corrected
-programs.
+programs — where `ruff` and `mypy` flag the defect in none of them
+([the numbers](BENCHMARK.md)).
 
 The checks that need no intent come with it: syntax and lint diagnostics, an AST
 security policy that also catches calls hidden behind dynamic imports and runtime
@@ -21,12 +22,13 @@ there is nothing to install or host.
 
 ```bash
 curl -s -X POST https://api.statemind.ai/v1/keys
-# {"api_key": "msvc_free_…", "tier": "free", "calls_per_day": 100, "modes": ["static"]}
+# {"api_key": "msvc_free_…", "tier": "free", "calls_per_day": 25, "modes": ["static"]}
 ```
 
-100 validations a day, metered per UTC day. Every answer carries the state of
-the allowance (`x-quota-remaining`, `x-quota-reset`), so a client can back off
-before it is cut off.
+25 static checks a day, metered per UTC day, and a few keys per address: enough
+to try it and to run it over a small project, not a supply. Every answer carries
+the state of the allowance (`x-quota-remaining`, `x-quota-reset`), so a client
+can back off before it is cut off.
 
 ## MCP
 
