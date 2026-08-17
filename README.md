@@ -1,5 +1,9 @@
 # Python Code Validator
 
+**An MCP server that validates, repairs and runs Python against the examples it
+is supposed to satisfy — `validate_python`, `repair_python` and `execute_python`
+over HTTP at `https://api.statemind.ai/mcp`, with a free key and no account.**
+
 A hosted service that proves AI-generated Python does what you asked. State the
 intent — assertions or doctest lines — and the code is run against it inside a
 container with no network and a read-only filesystem; a fix comes back only when
@@ -296,6 +300,12 @@ curl -s -X POST https://api.statemind.ai/v1/keys/checkout \
 That answers with a Stripe Checkout page; the credits are on the key seconds
 after the card clears (500 credits is €10). An agent with a Gnosis wallet can
 instead pay in xDAI without a browser — `GET /v1/pricing` states both routes.
+
+## Examples
+
+[`examples/`](examples/) holds three files and the client to send them with: one
+that passes every check and still returns the wrong number, one the security
+policy refuses, and one that comes back accepted from the sandbox.
 
 ## Licence
 
