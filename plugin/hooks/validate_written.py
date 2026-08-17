@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Check the Python file Claude just wrote, and hand back what is wrong with it.
+"""Check the Python file an agent just wrote, and hand back what is wrong with it.
 
-Claude Code runs this after every ``Write`` or ``Edit``. A file that comes back
-accepted costs the session nothing: the hook exits quietly. A file with an error
-in it exits 2, which is how a ``PostToolUse`` hook gets its stderr in front of
-the model — so the defect is fixed in the same turn it was written, instead of
+Claude Code runs this after every ``Write`` or ``Edit``, Cursor after every
+``afterFileEdit``. A file that comes back accepted costs the session nothing: the
+hook exits quietly. A rejected one is reported to the model in the way its client
+reads — Claude Code takes stderr with exit 2, Cursor takes ``additional_context``
+on stdout — so the defect is fixed in the same turn it was written, instead of
 surfacing later as a traceback for the user.
 
 Nothing here may end a session that would otherwise have worked: an unreachable
@@ -22,7 +23,9 @@ import urllib.request
 from pathlib import Path
 
 BASE_URL = os.environ.get("VALIDATOR_URL", "https://api.statemind.ai").rstrip("/")
-SOURCE = os.environ.get("VALIDATOR_SOURCE", "claude-code-plugin")
+# Which client's traffic this is, so one integration can be told from the other.
+# The service only ever counts it.
+SOURCE = "agent-hook"
 TIMEOUT_S = 40
 # The service refuses larger files, and a generated one this size is rare enough
 # that asking is not worth a call from the allowance.
@@ -74,7 +77,7 @@ def key() -> str:
             return held
     except OSError:
         pass
-    status, issued = post("/v1/keys", {"note": "claude-code"})
+    status, issued = post("/v1/keys", {"note": SOURCE})
     minted = str(issued.get("api_key", "")) if status < 400 else ""
     if minted:
         try:
@@ -109,8 +112,12 @@ def already_seen(digest: str) -> bool:
 
 
 def edited_file(event: dict) -> Path | None:
-    """The Python file this event wrote, if it wrote one."""
-    target = str((event.get("tool_input") or {}).get("file_path", ""))
+    """The Python file this event wrote, if it wrote one.
+
+    Claude Code names it inside the tool input; Cursor names it at the top level.
+    """
+    inside = (event.get("tool_input") or {}) if isinstance(event.get("tool_input"), dict) else {}
+    target = str(inside.get("file_path") or event.get("file_path") or "")
     if not target.endswith(".py"):
         return None
     path = Path(target)
@@ -147,8 +154,27 @@ def spent(body: dict) -> str:
     )
 
 
-def main() -> int:
-    """Check the written file; return the exit code Claude Code should see."""
+def report(client: str, message: str) -> int:
+    """Put ``message`` where ``client``'s model will read it; return the exit code.
+
+    Cursor's edit hook has no blocking semantics worth using — the edit already
+    happened — but it does inject ``additional_context`` into the conversation.
+    Claude Code has no such field on this event, and exit 2 is the only way its
+    stderr reaches the model.
+    """
+    if client == "cursor":
+        print(json.dumps({"additional_context": message}))
+        return 0
+    print(message, file=sys.stderr)
+    return 2
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Check the written file; return the exit code the client should see."""
+    global SOURCE
+    arguments = argv if argv is not None else sys.argv[1:]
+    client = "cursor" if "--cursor" in arguments else "claude"
+    SOURCE = os.environ.get("VALIDATOR_SOURCE") or f"{client}-hook"
     try:
         event = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
@@ -174,8 +200,7 @@ def main() -> int:
     if status == 0 or status >= 400 or not body:
         return 0
     if body.get("valid") is False:
-        print(complaint(path, body), file=sys.stderr)
-        return 2
+        return report(client, complaint(path, body))
     return 0
 
 

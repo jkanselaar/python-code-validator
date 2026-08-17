@@ -66,9 +66,15 @@ class HookCase(unittest.TestCase):
         path.write_text(source, encoding="utf-8")
         return path
 
-    def run_hook(self, path: Path, tool: str = "Write") -> tuple[int, str, str]:
+    def run_hook(
+        self,
+        path: Path,
+        tool: str = "Write",
+        argv: list[str] | None = None,
+        event: dict | None = None,
+    ) -> tuple[int, str, str]:
         """Feed one event through the hook; return its code and its output."""
-        event = {"tool_name": tool, "tool_input": {"file_path": str(path)}}
+        event = event or {"tool_name": tool, "tool_input": {"file_path": str(path)}}
         original = sys.stdin, sys.stdout, sys.stderr
         sys.stdin, sys.stdout, sys.stderr = (
             io.StringIO(json.dumps(event)),
@@ -76,7 +82,7 @@ class HookCase(unittest.TestCase):
             self.stderr,
         )
         try:
-            code = hook.main()
+            code = hook.main(argv or [])
         finally:
             sys.stdin, sys.stdout, sys.stderr = original
         return code, self.stdout.getvalue(), self.stderr.getvalue()
@@ -148,6 +154,18 @@ class HookCase(unittest.TestCase):
         self.run_hook(self.written("y = 2\n", name="other.py"))
         self.assertEqual([call for call, _ in self.calls].count("/v1/keys"), 1)
 
+    def test_cursor_gets_the_verdict_as_context(self) -> None:
+        self.answer = (200, {"valid": False, "diagnostics": []})
+        code, out, err = self.run_hook(self.written("x = 1\n"), argv=["--cursor"])
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn("rejected this file", json.loads(out)["additional_context"])
+
+    def test_a_path_named_the_way_cursor_names_it_is_read(self) -> None:
+        path = self.written("x = 1\n")
+        code, _, _ = self.run_hook(path, event={"file_path": str(path)})
+        self.assertEqual(code, 0)
+        self.assertIn("/v1/validate", [call for call, _ in self.calls])
+
     def test_a_file_too_large_to_send_is_skipped(self) -> None:
         code, _, _ = self.run_hook(self.written("x = 1\n" * 40_000))
         self.assertEqual(code, 0)
@@ -164,6 +182,11 @@ class ManifestCase(unittest.TestCase):
         listed = self.read(".claude-plugin", "marketplace.json")["plugins"]
         self.assertEqual([plugin["name"] for plugin in listed], ["python-code-validator"])
         self.assertTrue((ROOT / listed[0]["source"]).is_dir())
+
+    def test_the_cursor_hook_runs_the_same_script_from_the_project_root(self) -> None:
+        configured = self.read("cursor", "hooks.json")["hooks"]["postToolUse"][0]["command"]
+        self.assertIn("--cursor", configured)
+        self.assertIn(".cursor/hooks/validate_written.py", configured)
 
     def test_the_plugin_declares_the_hook_it_ships(self) -> None:
         manifest = self.read("plugin", ".claude-plugin", "plugin.json")

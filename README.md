@@ -138,6 +138,24 @@ Set `VALIDATOR_API_KEY` to use a paid key instead of the free tier, and
 `validate-python` skill, for the part a hook cannot do: stating the intent as
 examples and running the code against them.
 
+## Cursor hook
+
+The same script, wired to Cursor's `postToolUse`, where the verdict comes back
+as context on the conversation instead of as an exit code:
+
+```bash
+mkdir -p .cursor/hooks
+base=https://raw.githubusercontent.com/jkanselaar/python-code-validator/main
+curl -sf $base/plugin/hooks/validate_written.py -o .cursor/hooks/validate_written.py
+curl -sf $base/cursor/hooks.json -o .cursor/hooks.json
+```
+
+Project hooks run from the project root, which is why the command in
+[`cursor/hooks.json`](cursor/hooks.json) is a path relative to it. For a hook
+that applies to every project instead, put the script in `~/.cursor/hooks/` and
+the same block in `~/.cursor/hooks.json` with the command
+`python3 ./hooks/validate_written.py --cursor`.
+
 ## Making the agent use it
 
 Configuring the server is not what gets it called: the instruction file is.
