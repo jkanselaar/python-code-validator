@@ -116,6 +116,28 @@ mode, same code, same examples — is answered from the answer it already got,
 marked `x-msvc-repeat: 1`, so an agent that checks its work at every step is not
 billed for verdicts that cannot have changed.
 
+## Claude Code plugin
+
+An instruction can be ignored; a hook cannot. The plugin checks every Python
+file Claude Code writes or edits, in the turn it was written, and hands the
+errors back to the model instead of to you:
+
+```
+/plugin marketplace add jkanselaar/python-code-validator
+/plugin install python-code-validator@statemind
+```
+
+Nothing to configure: it mints and keeps its own free key on first use. A file
+that comes back accepted is silent, a rejected one stops the turn with the
+offending lines named, and an identical file is not asked about twice. It never
+ends a session over its own trouble — an unreachable service or a spent
+allowance lets the turn continue, and the allowance says how to raise it.
+
+Set `VALIDATOR_API_KEY` to use a paid key instead of the free tier, and
+`VALIDATOR_URL` to point at your own deployment. The plugin also carries the
+`validate-python` skill, for the part a hook cannot do: stating the intent as
+examples and running the code against them.
+
 ## Making the agent use it
 
 Configuring the server is not what gets it called: the instruction file is.
