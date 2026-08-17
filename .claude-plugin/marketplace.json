@@ -1,0 +1,14 @@
+{
+  "name": "statemind",
+  "owner": {
+    "name": "StateMind",
+    "url": "https://api.statemind.ai"
+  },
+  "plugins": [
+    {
+      "name": "python-code-validator",
+      "source": "./plugin",
+      "description": "Checks every Python file Claude writes, before you read it: syntax, lint, types, an AST security policy and a credential scan, with the exact fix when there is one."
+    }
+  ]
+}

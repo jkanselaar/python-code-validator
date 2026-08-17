@@ -1,0 +1,15 @@
+{
+  "name": "python-code-validator",
+  "displayName": "Python Code Validator",
+  "version": "1.0.0",
+  "description": "Checks every Python file Claude writes, before you read it: syntax, lint, types, an AST security policy and a credential scan, with the exact fix when there is one.",
+  "author": {
+    "name": "StateMind",
+    "url": "https://api.statemind.ai"
+  },
+  "homepage": "https://api.statemind.ai",
+  "repository": "https://github.com/jkanselaar/python-code-validator",
+  "license": "MIT",
+  "keywords": ["python", "validation", "security", "lint", "code-quality"],
+  "hooks": "./hooks/hooks.json"
+}

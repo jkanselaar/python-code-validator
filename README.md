@@ -116,6 +116,46 @@ mode, same code, same examples — is answered from the answer it already got,
 marked `x-msvc-repeat: 1`, so an agent that checks its work at every step is not
 billed for verdicts that cannot have changed.
 
+## Claude Code plugin
+
+An instruction can be ignored; a hook cannot. The plugin checks every Python
+file Claude Code writes or edits, in the turn it was written, and hands the
+errors back to the model instead of to you:
+
+```
+/plugin marketplace add jkanselaar/python-code-validator
+/plugin install python-code-validator@statemind
+```
+
+Nothing to configure: it mints and keeps its own free key on first use. A file
+that comes back accepted is silent, a rejected one stops the turn with the
+offending lines named, and an identical file is not asked about twice. It never
+ends a session over its own trouble — an unreachable service or a spent
+allowance lets the turn continue, and the allowance says how to raise it.
+
+Set `VALIDATOR_API_KEY` to use a paid key instead of the free tier, and
+`VALIDATOR_URL` to point at your own deployment. The plugin also carries the
+`validate-python` skill, for the part a hook cannot do: stating the intent as
+examples and running the code against them.
+
+## Cursor hook
+
+The same script, wired to Cursor's `postToolUse`, where the verdict comes back
+as context on the conversation instead of as an exit code:
+
+```bash
+mkdir -p .cursor/hooks
+base=https://raw.githubusercontent.com/jkanselaar/python-code-validator/main
+curl -sf $base/plugin/hooks/validate_written.py -o .cursor/hooks/validate_written.py
+curl -sf $base/cursor/hooks.json -o .cursor/hooks.json
+```
+
+Project hooks run from the project root, which is why the command in
+[`cursor/hooks.json`](cursor/hooks.json) is a path relative to it. For a hook
+that applies to every project instead, put the script in `~/.cursor/hooks/` and
+the same block in `~/.cursor/hooks.json` with the command
+`python3 ./hooks/validate_written.py --cursor`.
+
 ## Making the agent use it
 
 Configuring the server is not what gets it called: the instruction file is.
