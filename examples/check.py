@@ -31,9 +31,7 @@ def post(url: str, payload: dict, key: str | None) -> dict:
         with urllib.request.urlopen(request, timeout=120) as answer:  # noqa: S310
             return json.loads(answer.read().decode())
     except urllib.error.HTTPError as refusal:
-        return json.loads(refusal.read().decode() or "{}") or {
-            "error": f"http_{refusal.code}"
-        }
+        return json.loads(refusal.read().decode() or "{}") or {"error": f"http_{refusal.code}"}
     except OSError as unreachable:
         return {"error": "unreachable", "detail": str(unreachable)}
 
